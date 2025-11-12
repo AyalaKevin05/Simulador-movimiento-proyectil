@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simulador Proyectil — Completo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg-a: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    --card:#ffffffcc;
+    --accent:#667eea;
+    --accent2:#764ba2;
+    --muted:#6b7280;
+    --danger:#c53030;
+    --success:#10b981;
+    --moon:#94a3b8;
+    --mars:#dc2626;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Helvetica,Arial;padding:20px;background:var(--bg-a);color:#222}
+  .wrap{max-width:1200px;margin:0 auto;background:var(--card);border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,0.18)}
+  h1{margin:0;font-size:28px;color:#1f2937;text-align:left}
+  .intro{color:var(--muted);margin-top:6px}
+  .grid{display:grid;grid-template-columns:420px 1fr;gap:18px;margin-top:18px}
+  .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 14px rgba(0,0,0,0.06)}
+  label{display:block;font-size:14px;color:#374151;margin-top:8px}
+  input[type=number], select{width:100%;padding:10px;border-radius:8px;border:1px solid #e5e7eb;font-size:14px}
+  .row{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .btn{background:linear-gradient(45deg,var(--accent),var(--accent2));color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;box-shadow:0 6px 12px rgba(102,116,234,0.12);transition:all 0.3s ease}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(102,116,234,0.2)}
+  .btn.ghost{background:#374151;color:#fff}
+  .btn.warn{background:transparent;border:1px solid #e5e7eb;color:#374151}
+  .btn.danger{background:var(--danger);color:#fff}
+  .btn.success{background:var(--success);color:#fff}
+  .btn.moon{background:var(--moon);color:#fff}
+  .btn.mars{background:var(--mars);color:#fff}
+  .btn.small{padding:6px 10px;font-size:12px}
+  .muted{color:var(--muted);font-size:13px}
+  #errorBox{color:var(--danger);font-weight:600;margin-top:8px;display:none}
+  #successBox{color:var(--success);font-weight:600;margin-top:8px;display:none}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+  th,td{padding:8px;border-bottom:1px solid #eef2ff;text-align:center}
+  th{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
+  #controlsTop{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  #controlsTop .left{display:flex;gap:10px;align-items:center}
+  #controlsTop .right{margin-left:auto;display:flex;gap:10px;align-items:center}
+  #speed{width:180px}
+  #simulationArea{margin-top:14px;padding:12px;background:#fafafa;border-radius:10px;border:1px solid #eef2ff}
+  #simulationHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  #simulationCanvas{width:100%;height:420px;border-radius:10px;background:linear-gradient(180deg,#f8fafc,#f0f9ff);border:1px solid #e6eefc;display:block}
+  .siminfo{display:flex;gap:14px;align-items:center;color:#374151;font-weight:600}
+  .small{font-size:13px;color:var(--muted)}
+  .export{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}
+  #modeToggle{float:right;margin-top:-10px;margin-bottom:10px;background:#111827;color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer;transition:all 0.3s ease}
+  #modeToggle:hover{background:#374151}
+  #procedimientos{margin-top:40px;background:#fff;border-radius:12px;padding:16px;box-shadow:0 6px 14px rgba(0,0,0,0.06)}
+  #procedimientos h3{margin-top:0;color:#1f2937}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+  .stat-card{background:#f8fafc;padding:12px;border-radius:8px;text-align:center;border-left:4px solid var(--accent)}
+  .stat-value{font-size:18px;font-weight:bold;color:var(--accent2)}
+  .stat-label{font-size:12px;color:var(--muted)}
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .setting-group{border:1px solid #e5e7eb;padding:12px;border-radius:8px}
+  .setting-group h4{margin:0 0 8px 0;font-size:14px}
+  .air-resistance{background:#fef2f2;border-color:#fecaca}
+  .planet-selector{background:#f0f9ff;border-color:#bae6fd}
+  .comparison-mode{background:#f0fdf4;border-color:#bbf7d0}
+  .energy-display{background:#fef7cd;border-color:#fde68a;margin-top:12px;padding:12px;border-radius:8px}
+  .energy-bar{height:8px;background:#e5e7eb;border-radius:4px;margin:4px 0;overflow:hidden}
+  .energy-fill{height:100%;transition:width 0.3s ease}
+  .kinetic-energy{background:#ef4444}
+  .potential-energy{background:#10b981}
+  .total-energy{background:#3b82f6}
+  .vector-info{background:#f0f9ff;padding:10px;border-radius:8px;margin-top:10px;border-left:4px solid var(--accent)}
+  .vector-row{display:flex;justify-content:space-between;margin:4px 0}
+  .vector-label{font-weight:600;color:#374151}
+  .vector-value{color:var(--accent2);font-family:monospace}
+  .procedimiento-content{
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    line-height:1.4;
+    background:#f8fafc;
+    padding:15px;
+    border-radius:8px;
+    border:1px solid #e5e7eb;
+    max-height:400px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+  }
+  @media (max-width:980px){
+    .grid{grid-template-columns:1fr; }
+    #simulationCanvas{height:320px}
+    .stats-grid{grid-template-columns:repeat(2,1fr)}
+    .settings-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <button id="modeToggle">Vista: PC</button>
+
+    <h1>Simulador de Movimiento de Proyectil</h1>
+    <div class="intro">Ingresa ángulo y distancia (X). El simulador calculará v₀, h_max, tiempos y animará la trayectoria en un plano cartesiano.</div>
+
+    <div class="grid">
+      <!-- izquierda: inputs + tabla -->
+      <div class="panel">
+        <h3>Laboratorio</h3>
+        <p class="small">Ingresa únicamente dos datos: ángulo (°) y distancia X (m). La distancia debe ser positiva.</p>
+
+        <label>Ángulo θ (grados)
+          <input id="angle" type="number" min="0.1" max="89.9" step="0.1" placeholder="ej: 45" value="45">
+        </label>
+
+        <label>Distancia X (m)
+          <input id="range" type="number" min="0.01" step="0.01" placeholder="ej: 20" value="20">
+        </label>
+
+        <!-- Configuraciones avanzadas -->
+        <div class="settings-grid">
+          <div class="setting-group planet-selector">
+            <h4>🌍 Gravedad</h4>
+            <select id="gravitySelect">
+              <option value="9.81">Tierra (9.81 m/s²)</option>
+              <option value="1.62">Luna (1.62 m/s²)</option>
+              <option value="3.71">Marte (3.71 m/s²)</option>
+              <option value="custom">Personalizada...</option>
+            </select>
+            <input id="customGravity" type="number" min="0.1" step="0.1" placeholder="m/s²" style="margin-top:8px;display:none">
+          </div>
+
+          <div class="setting-group air-resistance">
+            <h4>💨 Resistencia del Aire</h4>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <input id="airResistance" type="checkbox">
+              <span class="small">Activar (coeficiente: 0.01)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group comparison-mode">
+          <h4>📊 Modo Comparación</h4>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <input id="comparisonMode" type="checkbox">
+            <span class="small">Mostrar múltiples trayectorias</span>
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="calculateBtn" class="btn">Calcular y Simular</button>
+          <button id="clearAll" class="btn ghost">Borrar todo</button>
+          <div id="errorBox">Mensaje de error</div>
+          <div id="successBox">Operación exitosa</div>
+        </div>
+
+        <div id="lastResult" style="margin-top:12px"></div>
+
+        <!-- Información de vectores en tiempo real -->
+        <div class="vector-info">
+          <h4 style="margin:0 0 8px 0">Vectores de Velocidad</h4>
+          <div class="vector-row">
+            <span class="vector-label">Velocidad Total:</span>
+            <span class="vector-value" id="vectorTotal">0.00 m/s</span>
+          </div>
+          <div class="vector-row">
+            <span class="vector-label">Componente X:</span>
+            <span class="vector-value" id="vectorX">0.00 m/s</span>
+          </div>
+          <div class="vector-row">
+            <span class="vector-label">Componente Y:</span>
+            <span class="vector-value" id="vectorY">0.00 m/s</span>
+          </div>
+          <div class="vector-row">
+            <span class="vector-label">Ángulo:</span>
+            <span class="vector-value" id="vectorAngle">0.00°</span>
+          </div>
+        </div>
+
+        <!-- Display de Energías -->
+        <div class="energy-display">
+          <h4 style="margin:0 0 8px 0">📈 Energías del Sistema</h4>
+          <div class="vector-row">
+            <span class="vector-label">Energía Cinética:</span>
+            <span class="vector-value" id="energyKinetic">0.00 J</span>
+          </div>
+          <div class="energy-bar">
+            <div id="kineticBar" class="energy-fill kinetic-energy" style="width:0%"></div>
+          </div>
+          
+          <div class="vector-row">
+            <span class="vector-label">Energía Potencial:</span>
+            <span class="vector-value" id="energyPotential">0.00 J</span>
+          </div>
+          <div class="energy-bar">
+            <div id="potentialBar" class="energy-fill potential-energy" style="width:0%"></div>
+          </div>
+          
+          <div class="vector-row">
+            <span class="vector-label">Energía Total:</span>
+            <span class="vector-value" id="energyTotal">0.00 J</span>
+          </div>
+          <div class="energy-bar">
+            <div id="totalBar" class="energy-fill total-energy" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Estadísticas rápidas -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="totalExps">0</div>
+            <div class="stat-label">Experimentos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="currentGravity">9.81</div>
+            <div class="stat-label">Gravedad (m/s²)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="maxRange">0</div>
+            <div class="stat-label">Alcance (m)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="maxHeight">0</div>
+            <div class="stat-label">Altura (m)</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top:16px">Experimentos guardados</h4>
+        <table id="experimentsTable">
+          <thead>
+            <tr><th>#</th><th>θ (°)</th><th>X (m)</th><th>v₀ (m/s)</th><th>h_max (m)</th><th>t_max (s)</th><th>t_total (s)</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+
+        <!-- Exportación avanzada -->
+        <div class="export">
+          <button id="exportCSV" class="btn small ghost">Exportar CSV</button>
+          <button id="exportJSON" class="btn small ghost">Exportar JSON</button>
+          <button id="exportPDF" class="btn small success">Exportar Reporte</button>
+        </div>
+      </div>
+
+      <!-- derecha: simulation area -->
+      <div class="panel" style="display:flex;flex-direction:column">
+        <div id="controlsTop">
+          <div class="left">
+            <label class="small">Experimento:
+              <select id="experimentSelect" style="padding:8px;border-radius:8px;border:1px solid #e6eefc;margin-left:8px"></select>
+            </label>
+            <button id="simulateBtn" class="btn" style="display:none">Simular</button>
+            <button id="exportBtn" class="btn" style="display:none;background:#10b981">Exportar PNG</button>
+          </div>
+
+          <div class="right">
+            <div class="small" style="margin-right:8px">Velocidad animación</div>
+            <input id="speed" type="range" min="0.1" max="5" step="0.1" value="1">
+            <button id="playBtn" class="btn success">▶ Reproducir</button>
+            <button id="pauseBtn" class="btn warning">⏸ Pausar</button>
+            <button id="resetBtn" class="btn warn">⏹ Reiniciar</button>
+          </div>
+        </div>
+
+        <div id="simulationArea" style="margin-top:12px">
+          <div id="simulationHeader" style="margin-bottom:8px">
+            <div class="siminfo">
+              <div id="infoV0" class="small">v₀: — m/s</div>
+              <div id="infoH" class="small">h_max: — m</div>
+              <div id="infoT" class="small">T: — s</div>
+              <div id="infoG" class="small">Gravedad: 9.81 m/s²</div>
+            </div>
+            <div class="siminfo" style="gap:8px">
+              <div id="timeDisplay" class="small">t = 0.00 s</div>
+              <div id="velDisplay" class="small">|v| = 0.00 m/s</div>
+            </div>
+          </div>
+
+          <canvas id="simulationCanvas" width="920" height="420"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADICIÓN: apartado donde se muestran los procedimientos paso a paso -->
+    <div id="procedimientos">
+      <h3>📝 Procedimiento Paso a Paso</h3>
+      <div id="procedimientoContenido" class="procedimiento-content">
+        Ingresa los datos y haz clic en "Calcular y Simular" para ver el procedimiento detallado.
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Simulador de Proyectiles Completo con Procedimientos */
+
+/* Variables globales */
+let g = 9.81;
+let experiments = [];
+let nextId = 1;
+let currentExp = null;
+let airResistanceEnabled = false;
+let comparisonMode = false;
+
+/* DOM Elements */
+const angleEl = document.getElementById('angle');
+const rangeEl = document.getElementById('range');
+const calculateBtn = document.getElementById('calculateBtn');
+const clearBtn = document.getElementById('clearAll');
+const errorBox = document.getElementById('errorBox');
+const successBox = document.getElementById('successBox');
+const lastResult = document.getElementById('lastResult');
+const tableBody = document.getElementById('tableBody');
+const experimentSelect = document.getElementById('experimentSelect');
+const simulateBtn = document.getElementById('simulateBtn');
+const exportBtn = document.getElementById('exportBtn');
+const exportCSV = document.getElementById('exportCSV');
+const exportJSON = document.getElementById('exportJSON');
+const exportPDF = document.getElementById('exportPDF');
+const gravitySelect = document.getElementById('gravitySelect');
+const customGravity = document.getElementById('customGravity');
+const airResistanceCheck = document.getElementById('airResistance');
+const comparisonModeCheck = document.getElementById('comparisonMode');
+
+const playBtn = document.getElementById('playBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const speedEl = document.getElementById('speed');
+
+const infoV0 = document.getElementById('infoV0');
+const infoH  = document.getElementById('infoH');
+const infoT  = document.getElementById('infoT');
+const infoG  = document.getElementById('infoG');
+const timeDisplay = document.getElementById('timeDisplay');
+const velDisplay  = document.getElementById('velDisplay');
+
+// Elementos de vectores
+const vectorTotal = document.getElementById('vectorTotal');
+const vectorX = document.getElementById('vectorX');
+const vectorY = document.getElementById('vectorY');
+const vectorAngle = document.getElementById('vectorAngle');
+
+// Elementos de energía
+const energyKinetic = document.getElementById('energyKinetic');
+const energyPotential = document.getElementById('energyPotential');
+const energyTotal = document.getElementById('energyTotal');
+const kineticBar = document.getElementById('kineticBar');
+const potentialBar = document.getElementById('potentialBar');
+const totalBar = document.getElementById('totalBar');
+
+// Elementos de estadísticas
+const totalExps = document.getElementById('totalExps');
+const currentGravity = document.getElementById('currentGravity');
+const maxRange = document.getElementById('maxRange');
+const maxHeight = document.getElementById('maxHeight');
+
+const canvas = document.getElementById('simulationCanvas');
+const ctx = canvas.getContext('2d');
+let DPR = window.devicePixelRatio || 1;
+canvas.width = canvas.clientWidth * DPR;
+canvas.height = canvas.clientHeight * DPR;
+ctx.setTransform(DPR,0,0,DPR,0,0);
+
+/* Anim state */
+let animRequest = null;
+let simState = { 
+  running: false, 
+  t: 0, 
+  speed: 1,
+  lastTimestamp: 0,
+  paused: false
+};
+
+/* Event Listeners para configuraciones */
+gravitySelect.addEventListener('change', function() {
+  if(this.value === 'custom') {
+    customGravity.style.display = 'block';
+    g = parseFloat(customGravity.value) || 9.81;
+  } else {
+    customGravity.style.display = 'none';
+    g = parseFloat(this.value);
+  }
+  currentGravity.textContent = g.toFixed(2);
+  infoG.textContent = `Gravedad: ${g.toFixed(2)} m/s²`;
+});
+
+customGravity.addEventListener('input', function() {
+  if(gravitySelect.value === 'custom') {
+    g = parseFloat(this.value) || 9.81;
+    currentGravity.textContent = g.toFixed(2);
+    infoG.textContent = `Gravedad: ${g.toFixed(2)} m/s²`;
+  }
+});
+
+airResistanceCheck.addEventListener('change', function() {
+  airResistanceEnabled = this.checked;
+});
+
+comparisonModeCheck.addEventListener('change', function() {
+  comparisonMode = this.checked;
+  if(currentExp) drawStatic(currentExp);
+});
+
+/* Validaciones y cálculos */
+function showError(msg){
+  errorBox.style.display = 'block';
+  errorBox.textContent = msg;
+  successBox.style.display = 'none';
+}
+
+function showSuccess(msg){
+  successBox.style.display = 'block';
+  successBox.textContent = msg;
+  errorBox.style.display = 'none';
+}
+
+function clearMessages(){
+  errorBox.style.display = 'none';
+  successBox.style.display = 'none';
+}
+
+/* Cálculo principal */
+function calcFromInputs(){
+  clearMessages();
+  
+  const a = parseFloat(angleEl.value);
+  const R = parseFloat(rangeEl.value);
+  
+  // Validaciones
+  if (Number.isNaN(a) || Number.isNaN(R)) { 
+    showError('Ambos campos deben ser números.'); 
+    return null; 
+  }
+  if (R <= 0) { 
+    showError('La distancia X debe ser positiva.'); 
+    return null; 
+  }
+  if (a <= 0 || a >= 90) { 
+    showError('El ángulo debe ser >0° y <90°.'); 
+    return null; 
+  }
+  
+  if (a < 5 || a > 85) {
+    showError('Para mejores resultados, use ángulos entre 5° y 85°');
+    return null;
+  }
+
+  // Cálculos físicos
+  const theta = a * Math.PI / 180;
+  const sin2 = Math.sin(2 * theta);
+  
+  if (Math.abs(sin2) < 1e-8) { 
+    showError('Ángulo inválido (sin(2θ)=0).'); 
+    return null; 
+  }
+  
+  // Fórmula fundamental: R = (v₀² * sin(2θ)) / g
+  // Despejando v₀: v₀ = √(R * g / sin(2θ))
+  const v0 = Math.sqrt(R * g / sin2);
+  const v0x = v0 * Math.cos(theta);
+  const v0y = v0 * Math.sin(theta);
+  const hMax = (v0y * v0y) / (2 * g);
+  const tMax = v0y / g;
+  const tTotal = 2 * tMax;
+
+  return { 
+    angleDeg: a, 
+    theta, 
+    R, 
+    v0, 
+    v0x, 
+    v0y, 
+    hMax,
+    tMax,
+    tTotal,
+    gravity: g,
+    airResistance: airResistanceEnabled,
+    mass: 0.1, // masa por defecto para cálculos de energía
+    timestamp: new Date().toISOString()
+  };
+}
+
+/* Función para mostrar procedimiento paso a paso */
+function mostrarProcedimiento(exp) {
+    const procedimientoLines = [];
+
+    procedimientoLines.push('CÁLCULOS — PASO A PASO');
+    procedimientoLines.push('═══════════════════════');
+    procedimientoLines.push('');
+    procedimientoLines.push('DATOS INICIALES:');
+    procedimientoLines.push(`• Ángulo (θ) = ${exp.angleDeg}°`);
+    procedimientoLines.push(`• Distancia (X) = ${exp.R.toFixed(2)} m`);
+    procedimientoLines.push(`• Gravedad (g) = ${exp.gravity.toFixed(2)} m/s²`);
+    procedimientoLines.push(`• Resistencia del aire: ${exp.airResistance ? 'ACTIVADA' : 'DESACTIVADA'}`);
+    procedimientoLines.push('');
+    procedimientoLines.push('PASO 1: Convertir ángulo a radianes');
+    procedimientoLines.push(`   θ_rad = ${exp.angleDeg}° × (π/180) = ${exp.theta.toFixed(4)} rad`);
+    procedimientoLines.push('');
+    procedimientoLines.push('PASO 2: Calcular velocidad inicial (v₀)');
+    procedimientoLines.push('   Fórmula: v₀ = √(X · g / sin(2θ))');
+    procedimientoLines.push(`   v₀ = √(${exp.R.toFixed(2)} × ${exp.gravity.toFixed(2)} / sin(2×${exp.theta.toFixed(4)}))`);
+    procedimientoLines.push(`   v₀ = √(${(exp.R * exp.gravity).toFixed(2)} / ${Math.sin(2*exp.theta).toFixed(4)})`);
+    procedimientoLines.push(`   v₀ = √(${((exp.R * exp.gravity)/Math.sin(2*exp.theta)).toFixed(2)})`);
+    procedimientoLines.push(`   v₀ = ${exp.v0.toFixed(2)} m/s`);
+    procedimientoLines.push('');
+    procedimientoLines.push('PASO 3: Calcular componentes de velocidad');
+    procedimientoLines.push(`   vₓ = v₀ · cos(θ) = ${exp.v0.toFixed(2)} × cos(${exp.theta.toFixed(4)})`);
+    procedimientoLines.push(`   vₓ = ${exp.v0.toFixed(2)} × ${Math.cos(exp.theta).toFixed(4)}`);
+    procedimientoLines.push(`   vₓ = ${(exp.v0 * Math.cos(exp.theta)).toFixed(2)} m/s`);
+    procedimientoLines.push('');
+    procedimientoLines.push(`   v_y = v₀ · sin(θ) = ${exp.v0.toFixed(2)} × sin(${exp.theta.toFixed(4)})`);
+    procedimientoLines.push(`   v_y = ${exp.v0.toFixed(2)} × ${Math.sin(exp.theta).toFixed(4)}`);
+    procedimientoLines.push(`   v_y = ${(exp.v0 * Math.sin(exp.theta)).toFixed(2)} m/s`);
+    procedimientoLines.push('');
+    procedimientoLines.push('PASO 4: Calcular altura máxima (h_max)');
+    procedimientoLines.push('   Fórmula: h_max = (v₀² · sin²θ) / (2g)');
+    procedimientoLines.push(`   h_max = (${exp.v0.toFixed(2)}² × sin²(${exp.theta.toFixed(4)})) / (2 × ${exp.gravity.toFixed(2)})`);
+    procedimientoLines.push(`   h_max = (${(exp.v0*exp.v0).toFixed(2)} × ${(Math.sin(exp.theta)*Math.sin(exp.theta)).toFixed(4)}) / ${(2*exp.gravity).toFixed(2)}`);
+    procedimientoLines.push(`   h_max = ${exp.hMax.toFixed(2)} m`);
+    procedimientoLines.push('');
+    procedimientoLines.push('PASO 5: Calcular tiempo hasta altura máxima (t_max)');
+    procedimientoLines.push('   Fórmula: t_max = v₀ · sinθ / g');
+    procedimientoLines.push(`   t_max = ${exp.v0.toFixed(2)} × sin(${exp.theta.toFixed(4)}) / ${exp.gravity.toFixed(2)}`);
+    procedimientoLines.push(`   t_max = ${(exp.v0 * Math.sin(exp.theta)).toFixed(2)} / ${exp.gravity.toFixed(2)}`);
+    procedimientoLines.push(`   t_max = ${exp.tMax.toFixed(2)} s`);
+    procedimientoLines.push('');
+    procedimientoLines.push('PASO 6: Calcular tiempo total de vuelo (t_total)');
+    procedimientoLines.push('   Fórmula: t_total = 2 · t_max');
+    procedimientoLines.push(`   t_total = 2 × ${exp.tMax.toFixed(2)}`);
+    procedimientoLines.push(`   t_total = ${exp.tTotal.toFixed(2)} s`);
+    procedimientoLines.push('');
+    procedimientoLines.push('RESUMEN FINAL:');
+    procedimientoLines.push(`• Velocidad inicial: ${exp.v0.toFixed(2)} m/s`);
+    procedimientoLines.push(`• Altura máxima: ${exp.hMax.toFixed(2)} m`);
+    procedimientoLines.push(`• Tiempo hasta altura máxima: ${exp.tMax.toFixed(2)} s`);
+    procedimientoLines.push(`• Tiempo total de vuelo: ${exp.tTotal.toFixed(2)} s`);
+    procedimientoLines.push(`• Alcance máximo: ${exp.R.toFixed(2)} m`);
+
+    // Escribir en el área de procedimientos
+    const procEl = document.getElementById('procedimientoContenido');
+    if (procEl) {
+        procEl.textContent = procedimientoLines.join('\n');
+    }
+}
+
+/* Construye HTML con procedimiento */
+function buildResultHTML(exp){
+  // Mostrar procedimiento
+  mostrarProcedimiento(exp);
+  
+  const gravityText = exp.gravity === 9.81 ? 'Tierra' : 
+                     exp.gravity === 1.62 ? 'Luna' :
+                     exp.gravity === 3.71 ? 'Marte' : 'Personalizada';
+  
+  return `
+    <div style="padding:10px;border-radius:8px;border:1px solid #eef2ff;background:#fff;">
+      <h4>📊 Resultados Calculados</h4>
+      <p><strong>Ángulo θ</strong> = ${exp.angleDeg}° = ${exp.theta.toFixed(4)} rad</p>
+      <p><strong>Distancia X</strong> = ${exp.R.toFixed(2)} m</p>
+      <p><strong>Velocidad inicial v₀</strong> = ${exp.v0.toFixed(2)} m/s</p>
+      <p><strong>Altura máxima h_max</strong> = ${exp.hMax.toFixed(2)} m</p>
+      <p><strong>Tiempo altura máxima t_max</strong> = ${exp.tMax.toFixed(2)} s</p>
+      <p><strong>Tiempo total t_total</strong> = ${exp.tTotal.toFixed(2)} s</p>
+      <p><strong>Gravedad</strong>: ${gravityText} (${exp.gravity.toFixed(2)} m/s²)</p>
+      <p><strong>Resistencia aire</strong>: ${exp.airResistance ? '✅ Activada' : '❌ Desactivada'}</p>
+    </div>
+  `;
+}
+
+/* UI: calcular y simular */
+calculateBtn.addEventListener('click', ()=>{
+  const res = calcFromInputs();
+  if (!res) return;
+  
+  const exp = {...res, id: nextId++};
+  experiments.push(exp);
+  
+  // Mostrar resultados
+  lastResult.innerHTML = buildResultHTML(exp);
+  updateTable();
+  updateSelect();
+  updateStats();
+  
+  // Preparar y ejecutar simulación automáticamente
+  prepareSimulation(exp.id);
+  startSimulation();
+  
+  showSuccess('Cálculo realizado y simulación iniciada');
+});
+
+clearBtn.addEventListener('click', ()=>{
+  if(experiments.length === 0) {
+    showError('No hay experimentos para eliminar');
+    return;
+  }
+  
+  if(confirm('¿Estás seguro de que quieres eliminar todos los experimentos?')) {
+    experiments = [];
+    nextId = 1;
+    updateTable();
+    updateSelect();
+    updateStats();
+    lastResult.innerHTML = '';
+    simulateBtn.style.display = 'none';
+    exportBtn.style.display = 'none';
+    resetSimulation();
+    
+    // Limpiar procedimiento
+    const procEl = document.getElementById('procedimientoContenido');
+    if (procEl) procEl.textContent = 'Ingresa los datos y haz clic en "Calcular y Simular" para ver el procedimiento detallado.';
+    
+    showSuccess('Todos los experimentos han sido eliminados');
+  }
+});
+
+/* Función para eliminar experimento individual */
+function deleteExperiment(id){
+  const expIndex = experiments.findIndex(e => e.id === id);
+  if(expIndex !== -1){
+    experiments.splice(expIndex, 1);
+    updateTable();
+    updateSelect();
+    updateStats();
+    
+    if(currentExp && currentExp.id === id){
+      resetSimulation();
+    }
+    
+    showSuccess('Experimento eliminado correctamente');
+  }
+}
+
+/* Table & select */
+function updateTable(){
+  tableBody.innerHTML = '';
+  experiments.forEach(exp => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${exp.id}</td>
+      <td>${exp.angleDeg.toFixed(1)}</td>
+      <td>${exp.R.toFixed(2)}</td>
+      <td>${exp.v0.toFixed(2)}</td>
+      <td>${exp.hMax.toFixed(2)}</td>
+      <td>${exp.tMax.toFixed(2)}</td>
+      <td>${exp.tTotal.toFixed(2)}</td>
+      <td>
+        <button data-id="${exp.id}" class="btn small success">Simular</button>
+        <button data-id="${exp.id}" class="btn small danger">Eliminar</button>
+      </td>
+    `;
+    tableBody.appendChild(tr);
+  });
+  
+  // attach simulate buttons per row
+  tableBody.querySelectorAll('.btn.success').forEach(b=>{
+    b.onclick = ()=> {
+      const id = parseInt(b.dataset.id);
+      experimentSelect.value = id;
+      prepareSimulation(id);
+      startSimulation();
+    };
+  });
+  
+  // attach delete buttons per row
+  tableBody.querySelectorAll('.btn.danger').forEach(b=>{
+    b.onclick = ()=> {
+      const id = parseInt(b.dataset.id);
+      const exp = experiments.find(e => e.id === id);
+      if(exp && confirm(`¿Eliminar experimento #${id} (θ=${exp.angleDeg}°, X=${exp.R.toFixed(2)}m)?`)){
+        deleteExperiment(id);
+      }
+    };
+  });
+}
+
+function updateSelect(){
+  experimentSelect.innerHTML = '<option value="">--Selecciona--</option>';
+  experiments.forEach(exp=>{
+    const op = document.createElement('option');
+    op.value = exp.id;
+    const gravityIcon = exp.gravity === 1.62 ? '🌙' : exp.gravity === 3.71 ? '♂️' : '🌍';
+    op.textContent = `#${exp.id} - θ:${exp.angleDeg.toFixed(1)}° X:${exp.R.toFixed(2)}m ${gravityIcon}`;
+    experimentSelect.appendChild(op);
+  });
+}
+
+function updateStats(){
+  totalExps.textContent = experiments.length;
+  
+  if(experiments.length > 0){
+    const lastExp = experiments[experiments.length - 1];
+    maxRange.textContent = lastExp.R.toFixed(1);
+    maxHeight.textContent = lastExp.hMax.toFixed(1);
+  } else {
+    maxRange.textContent = '0';
+    maxHeight.textContent = '0';
+  }
+}
+
+/* Resetear displays */
+function resetVectorDisplay(){
+  vectorTotal.textContent = '0.00 m/s';
+  vectorX.textContent = '0.00 m/s';
+  vectorY.textContent = '0.00 m/s';
+  vectorAngle.textContent = '0.00°';
+}
+
+function resetEnergyDisplay(){
+  energyKinetic.textContent = '0.00 J';
+  energyPotential.textContent = '0.00 J';
+  energyTotal.textContent = '0.00 J';
+  kineticBar.style.width = '0%';
+  potentialBar.style.width = '0%';
+  totalBar.style.width = '0%';
+}
+
+/* Actualizar displays */
+function updateVectorDisplay(vx, vy, vmag, angle){
+  vectorTotal.textContent = `${vmag.toFixed(2)} m/s`;
+  vectorX.textContent = `${vx.toFixed(2)} m/s`;
+  vectorY.textContent = `${vy.toFixed(2)} m/s`;
+  vectorAngle.textContent = `${angle.toFixed(2)}°`;
+}
+
+function updateEnergyDisplay(kinetic, potential, total){
+  energyKinetic.textContent = `${kinetic.toFixed(2)} J`;
+  energyPotential.textContent = `${potential.toFixed(2)} J`;
+  energyTotal.textContent = `${total.toFixed(2)} J`;
+  
+  const maxEnergy = Math.max(kinetic + potential, total);
+  if (maxEnergy > 0) {
+    kineticBar.style.width = `${(kinetic / maxEnergy) * 100}%`;
+    potentialBar.style.width = `${(potential / maxEnergy) * 100}%`;
+    totalBar.style.width = `${(total / maxEnergy) * 100}%`;
+  }
+}
+
+/* Cálculo de energías */
+function calculateEnergies(x, y, vx, vy, mass, gravity){
+  const kinetic = 0.5 * mass * (vx*vx + vy*vy);
+  const potential = mass * gravity * y;
+  const total = kinetic + potential;
+  return { kinetic, potential, total };
+}
+
+/* Draw axes and static grid */
+function drawStatic(exp){
+  ctx.clearRect(0,0,canvas.width/DPR,canvas.height/DPR);
+  const W = canvas.clientWidth;
+  const H = canvas.clientHeight;
+  const margin = 60;
+  const plotW = W - margin*1.5;
+  const plotH = H - margin*1.5;
+
+  const maxX = exp.R * 1.1;
+  const maxY = Math.max(exp.hMax, exp.R*0.15) * 1.2;
+  const scaleX = plotW / maxX;
+  const scaleY = plotH / maxY;
+
+  currentExp._draw = { W, H, margin, plotW, plotH, scaleX, scaleY, maxX, maxY };
+
+  // Fondo
+  ctx.fillStyle = '#f8fbff';
+  ctx.fillRect(0,0,W,H);
+
+  // Ejes
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(margin, H - margin);
+  ctx.lineTo(margin + plotW + 10, H - margin);
+  ctx.moveTo(margin, H - margin);
+  ctx.lineTo(margin, H - margin - plotH - 10);
+  ctx.stroke();
+
+  // Cuadrícula
+  ctx.strokeStyle = '#e6eefc';
+  ctx.lineWidth = 1;
+  ctx.font = '12px Inter, Arial';
+  ctx.fillStyle = '#334155';
+  
+  for(let i=0;i<=8;i++){
+    const xVal = i * (maxX / 8);
+    const xPix = margin + xVal * scaleX;
+    ctx.beginPath();
+    ctx.moveTo(xPix, H - margin);
+    ctx.lineTo(xPix, H - margin - plotH);
+    ctx.stroke();
+    ctx.fillText(xVal.toFixed(1), xPix, H - margin + 18);
+  }
+  
+  for(let j=0;j<=6;j++){
+    const yVal = j * (maxY / 6);
+    const yPix = H - margin - yVal * scaleY;
+    ctx.beginPath();
+    ctx.moveTo(margin, yPix);
+    ctx.lineTo(margin + plotW, yPix);
+    ctx.stroke();
+    ctx.fillText(yVal.toFixed(1), margin - 34, yPix + 4);
+  }
+
+  // Dibujar trayectoria de comparación si existe
+  if(comparisonMode && experiments.length > 1){
+    const colors = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed'];
+    experiments.forEach((expComp, index) => {
+      if(expComp.id === exp.id) return; // Saltar el actual
+      
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = colors[index % colors.length];
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath();
+      
+      const numPoints = 200;
+      for(let i = 0; i <= numPoints; i++){
+        const t = i * (expComp.tTotal * 1.1) / numPoints;
+        const x = expComp.v0x * t;
+        const y = expComp.v0y * t - 0.5 * expComp.gravity * t * t;
+        
+        if (y >= 0) {
+          const px = margin + x * scaleX;
+          const py = H - margin - y * scaleY;
+          
+          if(i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+      }
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+  }
+
+  // Dibujar trayectoria principal
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#2563eb';
+  ctx.beginPath();
+  
+  const numPoints = 200;
+  for(let i = 0; i <= numPoints; i++){
+    const t = i * (exp.tTotal * 1.1) / numPoints;
+    const x = exp.v0x * t;
+    const y = exp.v0y * t - 0.5 * exp.gravity * t * t;
+    
+    if (y >= 0) {
+      const px = margin + x * scaleX;
+      const py = H - margin - y * scaleY;
+      
+      if(i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+  }
+  ctx.stroke();
+
+  // Puntos especiales
+  drawSpecialPoints(exp, margin, H, scaleX, scaleY);
+  
+  // Leyenda
+  drawLegend(exp, margin, H);
+}
+
+function drawSpecialPoints(exp, margin, H, scaleX, scaleY) {
+  // Punto de impacto
+  const impactX = exp.R;
+  const impactPx = margin + impactX * scaleX;
+  const impactPy = H - margin;
+  
+  ctx.fillStyle = '#10b981';
+  ctx.beginPath(); 
+  ctx.arc(impactPx, impactPy, 5, 0, Math.PI*2); 
+  ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.fillText('Impacto', impactPx + 8, impactPy - 8);
+
+  // Punto de altura máxima
+  const apexX = exp.v0x * exp.tMax;
+  const apexY = exp.hMax;
+  const apexPx = margin + apexX * scaleX;
+  const apexPy = H - margin - apexY * scaleY;
+  
+  ctx.fillStyle = '#f59e0b';
+  ctx.beginPath(); 
+  ctx.arc(apexPx, apexPy, 5, 0, Math.PI*2); 
+  ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.fillText('Apex', apexPx + 8, apexPy - 8);
+
+  // Punto de lanzamiento
+  const launchX = margin;
+  const launchY = H - margin;
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); 
+  ctx.arc(launchX, launchY, 4, 0, Math.PI*2); 
+  ctx.fill();
+  ctx.fillText('Lanzamiento', launchX + 10, launchY - 8);
+}
+
+function drawLegend(exp, margin, H) {
+  ctx.font = '11px Inter, Arial';
+  ctx.fillStyle = '#374151';
+  const legendY = 30;
+  
+  // Leyenda principal
+  ctx.fillStyle = '#2563eb';
+  ctx.fillRect(20, legendY, 15, 3);
+  ctx.fillStyle = '#374151';
+  ctx.fillText('Trayectoria Principal', 40, legendY + 4);
+  
+  // Leyenda de comparación
+  if(comparisonMode && experiments.length > 1){
+    const colors = ['#dc2626', '#16a34a', '#d97706', '#7c3aed'];
+    experiments.forEach((expComp, index) => {
+      if(expComp.id === exp.id) return;
+      const yPos = 30 + (index + 1) * 15;
+      ctx.fillStyle = colors[index % colors.length];
+      ctx.fillRect(20, yPos, 15, 3);
+      ctx.fillStyle = '#374151';
+      ctx.fillText(`Exp #${expComp.id}`, 40, yPos + 4);
+    });
+  }
+}
+
+/* Dibujar vectores de velocidad detallados */
+function drawVelocityVectors(px, py, vx, vy, vmag, d) {
+  const scale = 0.8;
+  
+  // Vector de velocidad total (rojo)
+  const totalScale = 25 * scale;
+  const vxTotal = (vx / vmag) * totalScale;
+  const vyTotal = (-vy / vmag) * totalScale;
+  
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + vxTotal, py + vyTotal);
+  ctx.stroke();
+  
+  // Componente X (verde)
+  if(Math.abs(vx) > 0.1) {
+    const xScale = 20 * scale;
+    ctx.strokeStyle = '#16a34a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px + xScale, py);
+    ctx.stroke();
+  }
+  
+  // Componente Y (azul)
+  if(Math.abs(vy) > 0.1) {
+    const yScale = 20 * scale * (vy > 0 ? -1 : 1);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px, py + yScale);
+    ctx.stroke();
+  }
+}
+
+/* Animation loop */
+function animateFrame(timestamp){
+  if(!currentExp || !simState.running || simState.paused) return;
+
+  const e = currentExp;
+  const d = e._draw;
+  if(!d) { drawStatic(e); return; }
+
+  if(simState.lastTimestamp === 0) {
+    simState.lastTimestamp = timestamp;
+  }
+  const deltaTime = (timestamp - simState.lastTimestamp) / 1000;
+  simState.lastTimestamp = timestamp;
+
+  simState.t += deltaTime * simState.speed;
+
+  if(simState.t > e.tTotal) {
+    simState.t = e.tTotal;
+    simState.running = false;
+    cancelAnimationFrame(animRequest);
+    animRequest = null;
+    return;
+  }
+
+  // Calcular posición y velocidad
+  const x = e.v0x * simState.t;
+  const y = e.v0y * simState.t - 0.5 * e.gravity * simState.t * simState.t;
+  const vx = e.v0x;
+  const vy = e.v0y - e.gravity * simState.t;
+
+  const px = d.margin + x * d.scaleX;
+  const py = d.H - d.margin - y * d.scaleY;
+
+  // Redibujar
+  drawStatic(e);
+
+  // Calcular magnitudes
+  const vmag = Math.sqrt(vx*vx + vy*vy);
+  const angle = Math.atan2(vy, vx) * 180 / Math.PI;
+
+  // Dibujar vectores
+  drawVelocityVectors(px, py, vx, vy, vmag, d);
+
+  // Dibujar proyectil
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath(); 
+  ctx.arc(px, py, 6, 0, Math.PI*2); 
+  ctx.fill();
+
+  // Calcular y mostrar energías
+  const energies = calculateEnergies(x, y, vx, vy, e.mass, e.gravity);
+  updateEnergyDisplay(energies.kinetic, energies.potential, energies.total);
+
+  // Actualizar displays
+  timeDisplay.textContent = `t = ${simState.t.toFixed(2)} s`;
+  velDisplay.textContent = `|v| = ${vmag.toFixed(2)} m/s`;
+  updateVectorDisplay(vx, vy, vmag, angle);
+
+  if(simState.running && !simState.paused){
+    animRequest = requestAnimationFrame(animateFrame);
+  }
+}
+
+/* Controles de simulación */
+function startSimulation() {
+  if(!currentExp) return;
+  
+  simState.running = true;
+  simState.paused = false;
+  simState.t = 0;
+  simState.lastTimestamp = 0;
+  simState.speed = Number(speedEl.value) || 1;
+  
+  if(animRequest) cancelAnimationFrame(animRequest);
+  animRequest = requestAnimationFrame(animateFrame);
+}
+
+function resetSimulation() {
+  if(!currentExp) return;
+  simState.running = false;
+  simState.paused = false;
+  simState.t = 0;
+  simState.lastTimestamp = 0;
+  timeDisplay.textContent = `t = 0.00 s`;
+  velDisplay.textContent = `|v| = 0.00 m/s`;
+  resetVectorDisplay();
+  resetEnergyDisplay();
+  drawStatic(currentExp);
+  if(animRequest) {
+    cancelAnimationFrame(animRequest);
+    animRequest = null;
+  }
+}
+
+playBtn.addEventListener('click', ()=>{
+  if(!currentExp){ 
+    showError('Primero calcula un experimento.'); 
+    return; 
+  }
+  
+  if(simState.paused) {
+    simState.paused = false;
+    simState.lastTimestamp = 0;
+  } else if(!simState.running) {
+    startSimulation();
+  }
+  
+  simState.speed = Number(speedEl.value) || 1;
+  if(!animRequest) {
+    animRequest = requestAnimationFrame(animateFrame);
+  }
+});
+
+pauseBtn.addEventListener('click', ()=>{
+  if(simState.running && !simState.paused) {
+    simState.paused = true;
+    showSuccess('Simulación pausada');
+  }
+});
+
+resetBtn.addEventListener('click', ()=>{
+  resetSimulation();
+});
+
+speedEl.addEventListener('input', ()=> {
+  simState.speed = Number(speedEl.value);
+  speedEl.title = `Velocidad: ${simState.speed.toFixed(1)}x`;
+});
+
+/* Preparar simulación */
+function prepareSimulation(id){
+  const idn = Number(id);
+  const exp = experiments.find(e=>e.id===idn);
+  if(!exp){ 
+    showError('Experimento no encontrado'); 
+    return; 
+  }
+  
+  currentExp = exp;
+  exp.v0x = exp.v0 * Math.cos(exp.theta);
+  exp.v0y = exp.v0 * Math.sin(exp.theta);
+  
+  infoV0.textContent = `v₀: ${exp.v0.toFixed(2)} m/s`;
+  infoH.textContent  = `h_max: ${exp.hMax.toFixed(2)} m`;
+  infoT.textContent  = `T: ${exp.tTotal.toFixed(2)} s`;
+  infoG.textContent  = `Gravedad: ${exp.gravity.toFixed(2)} m/s²`;
+  
+  timeDisplay.textContent = `t = 0.00 s`;
+  velDisplay.textContent  = `|v| = 0.00 m/s`;
+  
+  resetVectorDisplay();
+  resetEnergyDisplay();
+  drawStatic(exp);
+  
+  // MOSTRAR PROCEDIMIENTO cuando se prepara la simulación
+  mostrarProcedimiento(exp);
+  
+  simulateBtn.style.display = 'inline-block';
+  exportBtn.style.display = 'inline-block';
+}
+
+/* Selector de experimentos */
+experimentSelect.addEventListener('change', (e)=>{
+  const id = Number(e.target.value);
+  if(!id) {
+    // Limpiar procedimiento si no hay experimento seleccionado
+    const procEl = document.getElementById('procedimientoContenido');
+    if (procEl) procEl.textContent = 'Selecciona un experimento para ver el procedimiento detallado.';
+    return;
+  }
+  prepareSimulation(id);
+});
+
+/* Exportación */
+exportBtn.addEventListener('click', ()=>{
+  if(!currentExp){ showError('Prepara un experimento antes de exportar.'); return; }
+  clearMessages();
+  const cb = document.createElement('a');
+  cb.download = `simulacion_exp${currentExp.id}.png`;
+  const temp = document.createElement('canvas');
+  const W = canvas.clientWidth * DPR;
+  const H = canvas.clientHeight * DPR;
+  temp.width = W;
+  temp.height = H;
+  const tctx = temp.getContext('2d');
+  tctx.drawImage(canvas, 0, 0, W, H);
+  cb.href = temp.toDataURL('image/png');
+  cb.click();
+  showSuccess('Imagen exportada correctamente');
+});
+
+exportCSV.addEventListener('click', ()=>{
+  if(experiments.length === 0){
+    showError('No hay experimentos para exportar');
+    return;
+  }
+  
+  const headers = ['ID','Ángulo (°)','X (m)','v₀ (m/s)','h_max (m)','t_max (s)','t_total (s)','Gravedad','Resistencia Aire'];
+  const csvContent = [
+    headers.join(','),
+    ...experiments.map(exp => [
+      exp.id,
+      exp.angleDeg.toFixed(2),
+      exp.R.toFixed(2),
+      exp.v0.toFixed(2),
+      exp.hMax.toFixed(2),
+      exp.tMax.toFixed(2),
+      exp.tTotal.toFixed(2),
+      exp.gravity.toFixed(2),
+      exp.airResistance ? 'Sí' : 'No'
+    ].join(','))
+  ].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'experimentos_proyectil.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showSuccess('Datos exportados en CSV');
+});
+
+exportJSON.addEventListener('click', ()=>{
+  if(experiments.length === 0){
+    showError('No hay experimentos para exportar');
+    return;
+  }
+  
+  const jsonData = {
+    version: '1.0',
+    timestamp: new Date().toISOString(),
+    experiments: experiments
+  };
+  
+  const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'experimentos_proyectil.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showSuccess('Datos exportados en JSON');
+});
+
+exportPDF.addEventListener('click', ()=>{
+  if(!currentExp){
+    showError('Prepara un experimento antes de exportar PDF');
+    return;
+  }
+  showSuccess('Funcionalidad PDF en desarrollo - Por ahora use PNG');
+});
+
+/* Inicialización */
+(function init(){
+  experimentSelect.innerHTML = '<option value="">-- VACÍO --</option>';
+  updateStats();
+  currentGravity.textContent = g.toFixed(2);
+  speedEl.title = `Velocidad: ${speedEl.value}x`;
+})();
+
+/* Modo PC/Móvil */
+const modeBtn = document.getElementById('modeToggle');
+let mobileMode = false;
+modeBtn.addEventListener('click', () => {
+  mobileMode = !mobileMode;
+  modeBtn.textContent = `Vista: ${mobileMode ? 'Móvil' : 'PC'}`;
+  const wrap = document.querySelector('.wrap');
+  const simCanvas = document.getElementById('simulationCanvas');
+  if (mobileMode) {
+    wrap.style.maxWidth = '98%';
+    wrap.style.padding = '12px';
+    document.body.style.padding = '10px';
+    simCanvas.style.height = '260px';
+    document.body.style.fontSize = '14px';
+  } else {
+    wrap.style.maxWidth = '1200px';
+    wrap.style.padding = '22px';
+    document.body.style.padding = '20px';
+    simCanvas.style.height = '420px';
+    document.body.style.fontSize = '';
+  }
+});
+</script>
+</body>
+</html>
