@@ -16,6 +16,7 @@
     --success:#10b981;
     --moon:#94a3b8;
     --mars:#dc2626;
+    --university-green: #038C4C;
   }
   html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Helvetica,Arial;padding:20px;background:var(--bg-a);color:#222}
   .wrap{max-width:1200px;margin:0 auto;background:var(--card);border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,0.18)}
@@ -87,11 +88,36 @@
     overflow-y:auto;
     white-space:pre-wrap;
   }
+  .university-banner {
+    margin-top: 30px;
+    background-color: var(--university-green);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .university-logo {
+    max-width: 100%;
+    height: auto;
+    max-height: 80px;
+  }
+  .creators {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+  }
   @media (max-width:980px){
     .grid{grid-template-columns:1fr; }
     #simulationCanvas{height:320px}
     .stats-grid{grid-template-columns:repeat(2,1fr)}
     .settings-grid{grid-template-columns:1fr}
+    .university-logo {
+      max-height: 60px;
+    }
   }
 </style>
 </head>
@@ -254,8 +280,7 @@
           <div class="right">
             <div class="small" style="margin-right:8px">Velocidad animación</div>
             <input id="speed" type="range" min="0.1" max="5" step="0.1" value="1">
-            <button id="playBtn" class="btn success">▶ Reproducir</button>
-            <button id="pauseBtn" class="btn warning">⏸ Pausar</button>
+            <button id="playPauseBtn" class="btn success">▶ Reproducir</button>
             <button id="resetBtn" class="btn warn">⏹ Reiniciar</button>
           </div>
         </div>
@@ -284,6 +309,15 @@
       <h3>📝 Procedimiento Paso a Paso</h3>
       <div id="procedimientoContenido" class="procedimiento-content">
         Ingresa los datos y haz clic en "Calcular y Simular" para ver el procedimiento detallado.
+      </div>
+    </div>
+    
+    <!-- BANNER UNIVERSITARIO -->
+    <div class="university-banner">
+      <!-- Reemplaza esta URL con el logo de tu universidad -->
+      <img src="https://1024terabox.com/s/1nzF8ajwCEXvC5IgKIYEFkg" alt="Logo Universidad" class="university-logo">
+      <div class="creators">
+        Desarrollado por: Kevin David Ayala Tordecilla, Cristian Rentería Fuentes y Jhorman Alexander Lopéz Espinoza
       </div>
     </div>
   </div>
@@ -319,8 +353,7 @@ const customGravity = document.getElementById('customGravity');
 const airResistanceCheck = document.getElementById('airResistance');
 const comparisonModeCheck = document.getElementById('comparisonMode');
 
-const playBtn = document.getElementById('playBtn');
-const pauseBtn = document.getElementById('pauseBtn');
+const playPauseBtn = document.getElementById('playPauseBtn');
 const resetBtn = document.getElementById('resetBtn');
 const speedEl = document.getElementById('speed');
 
@@ -956,7 +989,7 @@ function drawVelocityVectors(px, py, vx, vy, vmag, d) {
 
 /* Animation loop */
 function animateFrame(timestamp){
-  if(!currentExp || !simState.running || simState.paused) return;
+  if(!currentExp || !simState.running) return;
 
   const e = currentExp;
   const d = e._draw;
@@ -973,6 +1006,7 @@ function animateFrame(timestamp){
   if(simState.t > e.tTotal) {
     simState.t = e.tTotal;
     simState.running = false;
+    playPauseBtn.textContent = '▶ Reproducir';
     cancelAnimationFrame(animRequest);
     animRequest = null;
     return;
@@ -1012,7 +1046,7 @@ function animateFrame(timestamp){
   velDisplay.textContent = `|v| = ${vmag.toFixed(2)} m/s`;
   updateVectorDisplay(vx, vy, vmag, angle);
 
-  if(simState.running && !simState.paused){
+  if(simState.running){
     animRequest = requestAnimationFrame(animateFrame);
   }
 }
@@ -1022,25 +1056,53 @@ function startSimulation() {
   if(!currentExp) return;
   
   simState.running = true;
-  simState.paused = false;
-  simState.t = 0;
   simState.lastTimestamp = 0;
   simState.speed = Number(speedEl.value) || 1;
+  
+  // Actualizar botón
+  playPauseBtn.textContent = '⏸ Pausar';
   
   if(animRequest) cancelAnimationFrame(animRequest);
   animRequest = requestAnimationFrame(animateFrame);
 }
 
+function togglePlayPause() {
+  if(!currentExp) {
+    showError('Primero calcula un experimento.'); 
+    return; 
+  }
+  
+  if(simState.running) {
+    // Pausar
+    simState.running = false;
+    playPauseBtn.textContent = '▶ Reanudar';
+    if(animRequest) {
+      cancelAnimationFrame(animRequest);
+      animRequest = null;
+    }
+  } else {
+    // Reanudar o iniciar
+    if(simState.t >= currentExp.tTotal) {
+      // Si ya terminó, reiniciar
+      resetSimulation();
+    }
+    startSimulation();
+  }
+}
+
 function resetSimulation() {
   if(!currentExp) return;
   simState.running = false;
-  simState.paused = false;
   simState.t = 0;
   simState.lastTimestamp = 0;
   timeDisplay.textContent = `t = 0.00 s`;
   velDisplay.textContent = `|v| = 0.00 m/s`;
   resetVectorDisplay();
   resetEnergyDisplay();
+  
+  // Actualizar botón
+  playPauseBtn.textContent = '▶ Reproducir';
+  
   drawStatic(currentExp);
   if(animRequest) {
     cancelAnimationFrame(animRequest);
@@ -1048,31 +1110,7 @@ function resetSimulation() {
   }
 }
 
-playBtn.addEventListener('click', ()=>{
-  if(!currentExp){ 
-    showError('Primero calcula un experimento.'); 
-    return; 
-  }
-  
-  if(simState.paused) {
-    simState.paused = false;
-    simState.lastTimestamp = 0;
-  } else if(!simState.running) {
-    startSimulation();
-  }
-  
-  simState.speed = Number(speedEl.value) || 1;
-  if(!animRequest) {
-    animRequest = requestAnimationFrame(animateFrame);
-  }
-});
-
-pauseBtn.addEventListener('click', ()=>{
-  if(simState.running && !simState.paused) {
-    simState.paused = true;
-    showSuccess('Simulación pausada');
-  }
-});
+playPauseBtn.addEventListener('click', togglePlayPause);
 
 resetBtn.addEventListener('click', ()=>{
   resetSimulation();
@@ -1113,6 +1151,9 @@ function prepareSimulation(id){
   
   simulateBtn.style.display = 'inline-block';
   exportBtn.style.display = 'inline-block';
+  
+  // Actualizar botón
+  playPauseBtn.textContent = '▶ Reproducir';
 }
 
 /* Selector de experimentos */
